@@ -10,6 +10,9 @@ import plotly.graph_objects as go
 import dash
 from dash import html, dcc, Input, Output
 
+server = app.server
+
+
 # COLLECT DATA ----------------------------------------
 df_structures = pd.read_csv('https://raw.githubusercontent.com/adeline-hub/feminine_kinship/refs/heads/main/processed_df_structures.csv')
 
