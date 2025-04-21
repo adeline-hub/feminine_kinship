@@ -1,1 +1,7 @@
-
+dash==2.16.1
+pandas==2.2.2
+plotly==5.22.0
+networkx==3.3
+numpy==1.26.4
+markdown
+openpyxl
