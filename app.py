@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 import dash
 from dash import html, dcc, Input, Output
 
-server = app.server
 
 
 # COLLECT DATA ----------------------------------------
@@ -131,6 +130,8 @@ def plot_map(df, selected_structure):
 # DASH APP
 
 app = dash.Dash(__name__)
+server = app.server
+
 app.title = "GreenCircle - Women Kinships"
 
 app.layout = html.Div([
