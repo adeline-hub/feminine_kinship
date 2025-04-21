@@ -9,4 +9,3 @@ gunicorn
 pycountry
 googletrans
 requests
-time
