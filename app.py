@@ -204,4 +204,4 @@ def update_graphs(structure_name):
     return fig1, fig2, info_text
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run_server(debug=True)
