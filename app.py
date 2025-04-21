@@ -12,7 +12,6 @@ from dash import html, dcc, Input, Output
 
 # COLLECT DATA ----------------------------------------
 df_structures = pd.read_csv('https://raw.githubusercontent.com/adeline-hub/feminine_kinship/refs/heads/main/processed_df_structures.csv')
-df_structures.sample(2)
 
 # FUNCTIONS - PRE-PROCESS to build the ----------------------------------------
 
