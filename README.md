@@ -19,7 +19,7 @@ Whether you're a researcher in **feminist anthropology**, a data lover, an econo
 
 ## 🚀 Live Demo & Tools
 
-🌐 **Live App**: [Coming Soon]  
+🌐 **Live App**: https://feminine-kinship.onrender.com
 📊 **Built with**:  
 - 🐍 Python  
 - 📦 Dash & Plotly  
