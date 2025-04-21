@@ -2,6 +2,7 @@
 
 ### By nambo yang | Economist 
 
+<img width='50%' src='https://github.com/adeline-hub/feminine_kinship/blob/main/kinship_extract.png?raw=true'/>
 ---
 
 ## 🔍 About This Project
