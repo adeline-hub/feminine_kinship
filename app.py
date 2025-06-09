@@ -1,24 +1,23 @@
-#IMPORT LIBRARIES
+# IMPORT LIBRARIES
 import pandas as pd
 import numpy as np
-import pycountry # best for country level geocoding
+import pycountry  # best for country level geocoding
 import requests
 import time
 from googletrans import Translator
 import networkx as nx
 import plotly.graph_objects as go
 import dash
-from dash import html, dcc, Input, Output
-
-
+from dash import html, dcc, Input, Output, State
 
 # COLLECT DATA ----------------------------------------
-df_structures = pd.read_csv('https://raw.githubusercontent.com/adeline-hub/feminine_kinship/refs/heads/main/processed_df_structures.csv')
+df_structures = pd.read_csv(
+    'https://raw.githubusercontent.com/adeline-hub/feminine_kinship/refs/heads/main/processed_df_structures.csv'
+)
 
 # FUNCTIONS - PRE-PROCESS to build the ----------------------------------------
 
-  # KINSHIP CHART WITH NETWORKX v2
-
+# KINSHIP CHART WITH NETWORKX v2
 def build_structure_graph(df, structure_name):
     # Filter the selected structure
     row = df[df['Nom'] == structure_name].iloc[0]
@@ -99,7 +98,6 @@ def build_structure_graph(df, structure_name):
     return fig
 
 
-
 # Minimal world map
 def plot_map(df, selected_structure):
     df_map = df.copy()
@@ -121,8 +119,8 @@ def plot_map(df, selected_structure):
         margin=dict(l=20, r=20, t=40, b=20),
         height=600,
         title="Carte des structures par pays",
-        plot_bgcolor='oldlace',  # Background color for the plot area
-        paper_bgcolor='oldlace'  # Background color for the entire figure
+        plot_bgcolor='oldlace',
+        paper_bgcolor='oldlace'
     )
     return fig
 
@@ -162,32 +160,89 @@ app.layout = html.Div([
             placeholder="Choisir une région",
             style={"width": "40%", "display": "inline-block", "marginRight": "20px"}
         ),
+        # Structure dropdown disabled to avoid manual selection; we use navigation buttons instead
         dcc.Dropdown(
             id="structure-dropdown",
-            placeholder="Choisir une structure",
+            options=[],
+            value=None,
+            clearable=False,
+            disabled=True,
             style={"width": "50%", "display": "inline-block"}
         ),
     ], style={"width": "90%", "margin": "auto", "marginBottom": "20px"}),
+
+    html.Div([
+        html.Button("Previous", id="prev-btn", n_clicks=0, style={"marginRight": "10px"}),
+        html.Button("Next", id="next-btn", n_clicks=0),
+        html.Span(id="page-indicator", style={"paddingLeft": "20px", "fontWeight": "bold"})
+    ], style={"width": "90%", "margin": "auto", "marginBottom": "20px", "textAlign": "center"}),
+
+    dcc.Store(id="page-index", data=0),
+
     html.Div([
         dcc.Graph(id="network-graph", style={"width": "49%", "display": "inline-block"}),
         dcc.Graph(id="map-graph", style={"width": "49%", "display": "inline-block"}),
     ]),
-    html.Div(id="structure-info", style={"width": "80%", "margin": "auto", "padding": "20px", "backgroundColor": "oldlace", "borderRadius": "10px", "marginTop": "20px", "fontSize": "18px", "lineHeight": "1.5"})
+
+    html.Div(id="structure-info", style={
+        "width": "80%",
+        "margin": "auto",
+        "padding": "20px",
+        "backgroundColor": "oldlace",
+        "borderRadius": "10px",
+        "marginTop": "20px",
+        "fontSize": "18px",
+        "lineHeight": "1.5"
+    })
 ])
 
-# Populate structures based on region
+# Callback: update structure options & value based on region and page index
 @app.callback(
     Output("structure-dropdown", "options"),
     Output("structure-dropdown", "value"),
-    Input("region-dropdown", "value")
+    Output("page-indicator", "children"),
+    Input("region-dropdown", "value"),
+    Input("page-index", "data")
 )
-def update_structure_options(selected_region):
+def update_structure_options(selected_region, page_index):
     filtered = df_structures[df_structures["Region"] == selected_region]
     options = [{"label": str(nom), "value": str(nom)} for nom in filtered["Nom"]]
-    default_value = options[0]["value"] if options else None
-    return options, default_value
+    if len(filtered) == 0:
+        return [], None, "No structures available"
+    # Clamp page_index
+    page_index = page_index % len(filtered)
+    value = filtered.iloc[page_index]["Nom"]
+    return options, value, f"Structure {page_index + 1} of {len(filtered)}"
 
-# Update graphs
+
+# Callback: handle Previous/Next buttons to update page index
+@app.callback(
+    Output("page-index", "data"),
+    Input("prev-btn", "n_clicks"),
+    Input("next-btn", "n_clicks"),
+    State("page-index", "data"),
+    State("region-dropdown", "value")
+)
+def update_page_index(prev_clicks, next_clicks, current_index, selected_region):
+    filtered = df_structures[df_structures["Region"] == selected_region]
+    n = len(filtered)
+    if n == 0:
+        return 0
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return current_index
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if button_id == "next-btn":
+        current_index = (current_index + 1) % n
+    elif button_id == "prev-btn":
+        current_index = (current_index - 1) % n
+    return current_index
+
+
+# Callback: update graphs and info based on structure
 @app.callback(
     Output("network-graph", "figure"),
     Output("map-graph", "figure"),
@@ -197,15 +252,18 @@ def update_structure_options(selected_region):
 def update_graphs(structure_name):
     if not structure_name:
         return go.Figure(), go.Figure(), ""
-    
+
     fig1 = build_structure_graph(df_structures, structure_name)
     fig2 = plot_map(df_structures, structure_name)
-    
-    # Extract structure information
+
     structure_info = df_structures[df_structures["Nom"] == structure_name].iloc[0]
-    info_text = f"📝 {structure_info['Nom']}'s governance is {structure_info['Gouvernance']}, membership is {structure_info['Composition']}, and main benefits are {structure_info['Benefices']}."
-    
+    info_text = (
+        f"📝 {structure_info['Nom']}'s governance is {structure_info['Gouvernance']}, "
+        f"membership is {structure_info['Composition']}, and main benefits are {structure_info['Benefices']}."
+    )
+
     return fig1, fig2, info_text
 
+
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True, port=8051)
