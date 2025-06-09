@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import dash
 from dash import html, dcc, Input, Output, State
 
+
 # COLLECT DATA ----------------------------------------
 df_structures = pd.read_csv(
     'https://raw.githubusercontent.com/adeline-hub/feminine_kinship/refs/heads/main/processed_df_structures.csv'
@@ -43,7 +44,7 @@ def build_structure_graph(df, structure_name):
     add_related_nodes(structure_id, row['Stakeholder'].split(', '), 'stakeholder', 150, -50)
 
     # Colors and symbols
-    node_colors = {'structure': '#ff3390', 'membre': '#33ffa2', 'benefice': '#a233ff', 'stakeholder': '#ff3c33'}
+    node_colors = {'structure': '#FF33FF', 'membre': '#33ffa2', 'benefice': '#a233ff', 'stakeholder': '#ff3c33'}
     node_symbols = {'structure': 'square', 'membre': 'circle', 'benefice': 'triangle-up', 'stakeholder': 'diamond'}
 
     # Edges
@@ -62,12 +63,20 @@ def build_structure_graph(df, structure_name):
         node_x = [pos[n][0] for n in nodes]
         node_y = [pos[n][1] for n in nodes]
         labels = [G.nodes[n]['label'] for n in nodes]
+# Example updated node trace inside build_structure_graph function
+
         node_traces.append(go.Scatter(
             x=node_x, y=node_y, mode='markers+text', text=labels,
             textposition="bottom center", hoverinfo='text',
-            marker=dict(size=20, color=node_colors[node_type], symbol=node_symbols[node_type]),
+            marker=dict(
+                size=40,                # Bigger size (was 20)
+                color=node_colors[node_type],
+                symbol=node_symbols[node_type],
+                opacity=0.5             # Semi-transparent (0 is fully transparent, 1 is opaque)
+            ),
             name=node_type.capitalize()
         ))
+
 
     # Final figure
     fig = go.Figure(
@@ -87,7 +96,7 @@ def build_structure_graph(df, structure_name):
     )
 
     fig.add_annotation(
-        text="By nambo yang",
+        text="nambo yang | personal research",
         xref="paper", yref="paper",
         x=1, y=0,  # bottom-right corner
         showarrow=False,
@@ -107,7 +116,7 @@ def plot_map(df, selected_structure):
     fig.add_trace(go.Choropleth(
         locations=df_map["ISO"].astype(str),
         z=df_map["selected"].astype(int),
-        colorscale=[[0, "#90ff33"], [1, "mediumslateblue"]],
+        colorscale=[[0, "#33FFA2"], [1, "mediumslateblue"]],
         showscale=False,
         marker_line_color="white",
         hovertext=df_map["Nom"],
@@ -118,7 +127,7 @@ def plot_map(df, selected_structure):
         geo=dict(showframe=False, showcoastlines=False, projection_type="natural earth"),
         margin=dict(l=20, r=20, t=40, b=20),
         height=600,
-        title="Carte des structures par pays",
+        title="Kinships map",
         plot_bgcolor='oldlace',
         paper_bgcolor='oldlace'
     )
@@ -127,37 +136,46 @@ def plot_map(df, selected_structure):
 
 # DASH APP
 
-app = dash.Dash(__name__)
-server = app.server
+app = dash.Dash(
+    __name__,
+    server=True,
+    title="GreenCircle - Women Kinships",
+    assets_folder='assets',
+    meta_tags=[
+        {"name": "description", "content": "Scroll into the power of women’s kinships"},
+        {"property": "og:title", "content": "Scroll into the power of women’s kinships"},
+        {"property": "og:description", "content": "Mapping structures of solidarity, benefit, and membership"},
+        {"property": "og:image", "content": "https://github.com/adeline-hub/feminine_kinship/blob/main/assets/logo%20big%20challenges.png?raw=true"},
+        {"property": "og:type", "content": "website"},
+        {"name": "twitter:card", "content": "summary_large_image"},
+        {"name": "twitter:title", "content": "Scroll into the power of women’s kinships"},
+        {"name": "twitter:image", "content": "/assets/share.png"},
+    ]
+)
 
-app.title = "GreenCircle - Women Kinships"
+server = app.server 
 
-app.layout = html.Div([
-    html.H1(
-        "Networks of Solidarity: Kinship Charts for Women's Structures 🌍",
-        style={
-            "textAlign": "center",
-            "fontFamily": "Arial, sans-serif"
-        }
-    ),
-    html.Div([
-        dcc.Slider(
-            id="period-slider",
-            min=int(df_structures["Période_num"].min()),
-            max=int(df_structures["Période_num"].max()),
-            value=int(df_structures["Période_num"].min()),
-            marks={int(year): str(int(year)) for year in sorted(df_structures["Période_num"].unique())},
-            step=None,
-            tooltip={"always_visible": True}
-        )
-    ], style={"width": "80%", "margin": "auto", "marginBottom": "30px"}),
+
+app.layout = html.Div(
+    children=[
+        html.H1(
+            "Scroll into the power of women’s kinships",
+            style={
+                "textAlign": "center",
+                "fontFamily": "Courier New",
+                "color": "white"
+            }
+        ),
+
+        # (Place your other Divs and components here, like dropdowns, graphs, etc.)
+
 
     html.Div([
         dcc.Dropdown(
             id="region-dropdown",
             options=[{"label": str(r), "value": str(r)} for r in df_structures["Region"].unique()],
             value="Afrique",
-            placeholder="Choisir une région",
+            placeholder="Filter by region",
             style={"width": "40%", "display": "inline-block", "marginRight": "20px"}
         ),
         # Structure dropdown disabled to avoid manual selection; we use navigation buttons instead
@@ -188,13 +206,23 @@ app.layout = html.Div([
         "width": "80%",
         "margin": "auto",
         "padding": "20px",
-        "backgroundColor": "oldlace",
+        "backgroundColor": "#33FFA2",
         "borderRadius": "10px",
         "marginTop": "20px",
+        "fontFamily": "Courier New",
+        "color": "#313130",
         "fontSize": "18px",
         "lineHeight": "1.5"
     })
-])
+]
+    ,
+    style={
+        "backgroundColor": "#313130",
+        "color": "white",
+        "fontFamily": "Courier New"
+    }
+)
+
 
 # Callback: update structure options & value based on region and page index
 @app.callback(
@@ -258,8 +286,9 @@ def update_graphs(structure_name):
 
     structure_info = df_structures[df_structures["Nom"] == structure_name].iloc[0]
     info_text = (
-        f"📝 {structure_info['Nom']}'s governance is {structure_info['Gouvernance']}, "
-        f"membership is {structure_info['Composition']}, and main benefits are {structure_info['Benefices']}."
+    f"📝 {structure_info['Nom']} is governed through {structure_info['Gouvernance']}, "
+    f"its membership consists of {structure_info['Composition']}, and its main benefits include {structure_info['Benefices']}."
+
     )
 
     return fig1, fig2, info_text
